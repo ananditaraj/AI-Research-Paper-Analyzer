@@ -5,21 +5,24 @@ const questionInput = document.getElementById("question");
 const sendBtn = document.querySelector(".send-btn");
 
 
-/* =========================
-   PDF UPLOAD
-========================= */
+/* ==========================================================================
+   1. PDF UPLOAD SYSTEM
+   ========================================================================== */
 async function uploadPDF() {
     const fileInput = document.getElementById("pdfUpload");
 
+    // Clear previous logs to prevent clutter
+    chatBox.innerHTML = "";
+
     if (!fileInput.files.length) {
-        addMessage("Please select a PDF file first.", "bot");
+        addMessage("Please select a PDF file first.", "msg-system");
         return;
     }
 
     const formData = new FormData();
     formData.append("file", fileInput.files[0]);
 
-    addMessage("Uploading and processing PDF...", "bot");
+    addMessage("Uploading and processing PDF...", "msg-system");
 
     try {
         const response = await fetch(`${API_BASE}/upload`, {
@@ -29,24 +32,25 @@ async function uploadPDF() {
 
         if (!response.ok) throw new Error("Upload failed");
 
-        addMessage("✅ PDF processed successfully! You can now ask questions.", "bot");
+        addMessage("✅ PDF processed successfully! You can now ask questions.", "msg-system");
 
     } catch (error) {
         console.error("Upload error:", error);
-        addMessage("❌ Error uploading PDF. Check backend server.", "bot");
+        addMessage("✕ Error uploading PDF. Check backend server.", "msg-error");
     }
 }
 
-/* =========================
-   SEND MESSAGE
-========================= */
+/* ==========================================================================
+   2. INTERACTIVE CHAT TRANSMISSION
+   ========================================================================== */
 async function sendMessage() {
     const question = questionInput.value.trim();
     const level = document.getElementById("level").value;
 
     if (!question) return;
 
-    addMessage(question, "user");
+    // Separate user question cleanly using msg-user block
+    addMessage(question, "msg-user");
     questionInput.value = "";
 
     setLoading(true);
@@ -64,16 +68,14 @@ async function sendMessage() {
         const data = await response.json();
         removeTypingIndicator(typingIndicator);
 
-        // Extract the structured answer
         const answer = data.answer || {};
-
         let html = "";
 
         // Main Idea
         if (answer.main_idea) {
             html += `
-                <div class="section">
-                    <strong>📌 Main Idea</strong>
+                <div class="section" style="margin-bottom: 14px;">
+                    <strong style="font-family: var(--font-serif); display: block; margin-bottom: 4px;">📌 Main Idea</strong>
                     <p>${answer.main_idea}</p>
                 </div>
             `;
@@ -83,15 +85,15 @@ async function sendMessage() {
         if (answer.key_concepts && Array.isArray(answer.key_concepts)) {
             const conceptsHTML = answer.key_concepts.map(c => {
                 if (typeof c === "string") {
-                    return `<li>${c}</li>`;
+                    return `<li style="margin-bottom: 4px;">${c}</li>`;
                 } else {
-                    return `<li><strong>${c.concept || c.term || "N/A"}:</strong> ${c.explanation || "Not available"}</li>`;
+                    return `<li style="margin-bottom: 4px;"><strong>${c.concept || c.term || "N/A"}:</strong> ${c.explanation || "Not available"}</li>`;
                 }
             }).join("");
             html += `
-                <div class="section">
-                    <strong>💡 Key Concepts</strong>
-                    <ul>${conceptsHTML}</ul>
+                <div class="section" style="margin-bottom: 14px;">
+                    <strong style="font-family: var(--font-serif); display: block; margin-bottom: 4px;">💡 Key Concepts</strong>
+                    <ul style="padding-left: 20px;">${conceptsHTML}</ul>
                 </div>
             `;
         }
@@ -99,8 +101,8 @@ async function sendMessage() {
         // Equations Explained
         if (answer.equations_explained) {
             html += `
-                <div class="section">
-                    <strong>🧮 Equations Explained</strong>
+                <div class="section" style="margin-bottom: 14px;">
+                    <strong style="font-family: var(--font-serif); display: block; margin-bottom: 4px;">🧮 Equations Explained</strong>
                     <p>${answer.equations_explained}</p>
                 </div>
             `;
@@ -109,8 +111,8 @@ async function sendMessage() {
         // Real World Example
         if (answer.real_world_example) {
             html += `
-                <div class="section">
-                    <strong>🌎 Real World Example</strong>
+                <div class="section" style="margin-bottom: 14px;">
+                    <strong style="font-family: var(--font-serif); display: block; margin-bottom: 4px;">🌎 Real World Example</strong>
                     <p>${answer.real_world_example}</p>
                 </div>
             `;
@@ -120,97 +122,36 @@ async function sendMessage() {
         if (answer.simple_summary) {
             html += `
                 <div class="section">
-                    <strong>📝 Simple Summary</strong>
+                    <strong style="font-family: var(--font-serif); display: block; margin-bottom: 4px;">📝 Simple Summary</strong>
                     <p>${answer.simple_summary}</p>
                 </div>
             `;
         }
 
-        // Fallback if nothing is present or response is raw
+        // Fallback layout block
         if (!html) {
-            html = `<pre>${answer.raw_response ? answer.raw_response : JSON.stringify(answer, null, 2)}</pre>`;
+            html = `<pre style="white-space: pre-wrap; font-family: monospace;">${answer.raw_response ? answer.raw_response : JSON.stringify(answer, null, 2)}</pre>`;
         }
 
-        addMessage(html, "bot", true);
+        addMessage(html, "msg-system", true);
 
     } catch (error) {
         removeTypingIndicator(typingIndicator);
-        addMessage("❌ Error getting response. Make sure backend is running.", "bot");
+        addMessage("✕ Error getting response. Make sure backend is running.", "msg-error");
         console.error(error);
     }
 
     setLoading(false);
 }
 
-/* =========================
-   FORMAT BOT RESPONSE
-========================= */
-function addFormattedResponse(data) {
-
-    let html = "";
-
-    if (data.main_idea) {
-        html += `
-            <div class="section">
-                <strong>📌 Main Idea</strong>
-                <p>${data.main_idea}</p>
-            </div>
-        `;
-    }
-
-    if (data.key_concepts && Array.isArray(data.key_concepts)) {
-        html += `
-            <div class="section">
-                <strong>📚 Key Concepts</strong>
-                <ul>
-                    ${data.key_concepts.map(concept => `<li>${concept}</li>`).join("")}
-                </ul>
-            </div>
-        `;
-    }
-
-    if (data.simple_summary) {
-        html += `
-            <div class="section">
-                <strong>📝 Simple Summary</strong>
-                <p>${data.simple_summary}</p>
-            </div>
-        `;
-    }
-
-    if (data.real_world_example) {
-        html += `
-            <div class="section">
-                <strong>🌍 Real World Example</strong>
-                <p>${data.real_world_example}</p>
-            </div>
-        `;
-    }
-
-    if (data.equations_explained) {
-        html += `
-            <div class="section">
-                <strong>📐 Equations Explained</strong>
-                <p>${data.equations_explained}</p>
-            </div>
-        `;
-    }
-
-    // Fallback if unexpected format
-    if (!html) {
-        html = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
-    }
-
-    addMessage(html, "bot", true);
-}
-
-
-/* =========================
-   MESSAGE HANDLING
-========================= */
-function addMessage(content, type, isHTML = false) {
+/* ==========================================================================
+   3. CLEAN LOG APPENDER (Solves Text Clumping)
+   ========================================================================== */
+function addMessage(content, statusClass, isHTML = false) {
     const div = document.createElement("div");
-    div.className = "message " + type;
+    
+    // Applies both the parent bubble definition block and specific styling type
+    div.className = `msg-bubble ${statusClass}`;
 
     if (isHTML) {
         div.innerHTML = content;
@@ -226,7 +167,7 @@ function addMessage(content, type, isHTML = false) {
 
 function addTypingIndicator() {
     const div = document.createElement("div");
-    div.className = "message bot typing";
+    div.className = "msg-bubble msg-system typing";
     div.innerText = "Typing...";
     chatBox.appendChild(div);
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -238,18 +179,14 @@ function removeTypingIndicator(element) {
 }
 
 
-/* =========================
-   UI HELPERS
-========================= */
+/* ==========================================================================
+   4. INTERFACE HELPER EVENTS
+   ========================================================================== */
 function setLoading(isLoading) {
     sendBtn.disabled = isLoading;
-    sendBtn.style.opacity = isLoading ? "0.6" : "1";
+    sendBtn.style.opacity = isLoading ? "0.4" : "1";
 }
 
-
-/* =========================
-   ENTER KEY SUPPORT
-========================= */
 questionInput.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
         e.preventDefault();

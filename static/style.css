@@ -1,225 +1,314 @@
-/* ==============================
-   GLOBAL RESET
-============================== */
+/* ==========================================================================
+   1. FONTS & CORES 
+   ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;1,400&display=swap');
+
+:root {
+    --bg-main: #f9f9f9;
+    --bg-card: #ffffff;
+    --border-color: #1a1a1a;
+    --text-main: #1a1a1a;
+    --text-muted: #666666;
+    --system-black: #000000;
+    --system-gray: #f0f0f0;
+    
+    --font-serif: 'Playfair Display', Georgia, serif;
+    --font-sans: 'Inter', sans-serif;
+}
+
 * {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
 }
 
-/* ==============================
-   BODY
-============================== */
 body {
-    font-family: "Inter", "Segoe UI", sans-serif;
+    font-family: var(--font-sans);
+    background-color: var(--bg-main);
+    color: var(--text-main);
     height: 100vh;
     display: flex;
+    flex-direction: column;
     overflow: hidden;
-    color: #1f2937;
-
-    /* Image ONLY background */
-    background: url("bg.png") center center / cover no-repeat fixed;
 }
 
-/* ==============================
-   LAYOUT
-============================== */
+/* ==========================================================================
+   2. HORIZONTAL LAYOUT SYSTEM
+   ========================================================================== */
 .layout {
-    width: 100%;
     display: flex;
-    align-items: center;
+    flex: 1;
+    height: calc(100vh - 60px); /* Leaves room for a bottom bar if needed */
+    padding: 24px;
+    gap: 24px;
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
 }
 
-/* ==============================
-   MAIN CHAT CARD
-============================== */
+/* Container Card */
 .chat-card {
-    width: 480px;
-    height: 94vh;
-    margin-left: 50px;
-    background: rgba(255, 255, 255, 0.274);
-    backdrop-filter: blur(25px);
-    border-radius: 24px;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 4px 4px 0px var(--border-color);
     display: flex;
     flex-direction: column;
-    box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.116);
-    padding: 24px;
-    z-index: 2;
-    border: 1px solid rgba(228, 228, 228, 0.288);
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
 }
 
-/* ==============================
-   HEADER
-============================== */
+/* Header Styling */
+.header {
+    padding: 20px 24px;
+    border-bottom: 1.5px solid var(--border-color);
+}
+
 .header h1 {
-    font-size: 20px;
+    font-family: var(--font-serif);
+    font-size: 1.8rem;
     font-weight: 600;
-    color: #0f172a;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
 }
 
 .header p {
-    font-size: 13px;
-    color: #64748b;
-    margin-top: 4px;
-    margin-bottom: 18px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
 }
 
-/* ==============================
-   CHAT WINDOW
-============================== */
+/* ==========================================================================
+   3. THE SPLIT PANELS (Horizontal Web App Core)
+   ========================================================================== */
 .chat-window {
+    display: flex;
     flex: 1;
-    background: rgba(248, 250, 252, 0.8);
-    border-radius: 18px;
-    padding: 16px;
+    flex-direction: row; /* Aligns Hub and Discussion side-by-side */
+    overflow: hidden;
+    border-bottom: 1.5px solid var(--border-color);
+}
+
+/* Reusable Panel Style */
+.panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
     overflow-y: auto;
+    padding: 24px;
+}
+
+.panel-left {
+    border-right: 1.5px solid var(--border-color);
+    background-color: #fafafa;
+}
+
+.panel-right {
+    background-color: var(--bg-card);
+}
+
+.panel-title {
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
     margin-bottom: 16px;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    font-weight: 600;
 }
 
-/* ==============================
-   MESSAGE BUBBLES
-============================== */
-.message {
+/* ==========================================================================
+   4. UI COMPONENTS (Dropzone, Lists, & Alerts)
+   ========================================================================== */
+/* Drag & Drop Zone */
+.dropzone {
+    border: 1.5px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 32px 16px;
+    text-align: center;
+    background: var(--bg-card);
+    margin-bottom: 20px;
+    transition: background 0.2s ease;
+}
+
+.dropzone:hover {
+    background: var(--system-gray);
+}
+
+/* System Alerts / Message Bubbles */
+.msg-bubble {
     padding: 12px 16px;
-    border-radius: 16px;
-    font-size: 14px;
-    line-height: 1.6;
-    max-width: 85%;
+    border-radius: 6px;
+    border: 1.5px solid var(--border-color);
+    font-size: 0.9rem;
     margin-bottom: 12px;
-    animation: fadeIn 0.2s ease-in-out;
+    max-width: 85%;
+    line-height: 1.4;
 }
 
-.user {
-    background: linear-gradient(135deg, #38bdf8, #6366f1);
-    color: white;
-    align-self: flex-end;
-    border-bottom-right-radius: 6px;
+.msg-system {
+    background-color: var(--system-gray);
+    color: var(--text-main);
 }
 
-.bot {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    color: #1f2937;
-    align-self: flex-start;
-    border-bottom-left-radius: 6px;
+.msg-error {
+    background-color: var(--system-black);
+    color: var(--bg-card);
 }
 
-/* ==============================
-   CONTROLS
-============================== */
+.msg-user {
+    background-color: var(--bg-card);
+    border-style: solid;
+    margin-left: auto;
+}
+
+/* ==========================================================================
+   5. CONTROLS & INPUTS
+   ========================================================================== */
 .controls {
+    padding: 20px 24px;
+    background: var(--bg-card);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
 }
 
 .upload-row {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     align-items: center;
 }
 
-/* Buttons */
+/* Elegant Buttons */
 .upload-btn {
-    background: linear-gradient(135deg, #38bdf8, #6366f1);
-    border: none;
-    padding: 8px 16px;
-    border-radius: 12px;
-    color: white;
-    cursor: pointer;
-    font-size: 12px;
-    transition: 0.2s ease;
+    font-family: var(--font-sans);
     font-weight: 500;
-}
-
-.upload-btn.secondary {
-    background: #e2e8f0;
-    color: #1f2937;
+    font-size: 0.85rem;
+    padding: 10px 20px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--system-black);
+    color: var(--bg-card);
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .upload-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.2);
+    background-color: #333333;
 }
 
-/* Select */
+.upload-btn.secondary {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+}
+
+.upload-btn.secondary:hover {
+    background-color: var(--system-gray);
+}
+
+/* Select Dropdown */
 select {
-    flex: 1;
-    padding: 8px;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    color: #1f2937;
-    font-size: 12px;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    padding: 10px 16px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-card);
+    cursor: pointer;
+    margin-left: auto;
+    outline: none;
 }
 
-/* ==============================
-   INPUT ROW
-============================== */
+/* Message Input Bar */
 .input-row {
     display: flex;
-    gap: 8px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 30px;
+    padding: 4px 6px 4px 16px;
+    background: var(--bg-card);
+    align-items: center;
 }
 
-#question {
+.input-row input {
     flex: 1;
-    padding: 12px;
-    border-radius: 20px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    color: #1f2937;
+    border: none;
     outline: none;
-    font-size: 14px;
-}
-
-#question:focus {
-    border: 1px solid #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    padding: 8px 0;
 }
 
 .send-btn {
-    background: linear-gradient(135deg, #38bdf8, #6366f1);
+    background: var(--system-black);
+    color: var(--bg-card);
     border: none;
-    padding: 0 20px;
-    border-radius: 20px;
-    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
     cursor: pointer;
-    font-size: 15px;
-    transition: 0.2s ease;
-    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    transition: transform 0.15s ease;
 }
 
 .send-btn:hover {
     transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+}
+/* ==========================================================================
+   CHAT BOX CONTAINER
+   ========================================================================== */
+.chat-window {
+    flex: 1;
+    display: flex;
+    flex-direction: column;    /* Stack messages vertically */
+    gap: 16px;                 /* Consistent breathing room between bubbles */
+    padding: 24px;
+    overflow-y: auto;
+    background-color: var(--bg-card);
 }
 
-/* ==============================
-   SCROLLBAR
-============================== */
-.chat-window::-webkit-scrollbar {
-    width: 6px;
+/* ==========================================================================
+   ELEGANT CHAT HIERARCHY & ALIGNMENT
+   ========================================================================== */
+
+/* Base configuration for all bubbles */
+.msg-bubble {
+    display: block;
+    max-width: 75%;            /* Restrict bubbles from stretching too wide across the screen */
+    padding: 12px 18px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    border-radius: 12px;
+    border: 1.5px solid var(--border-color);
+    box-sizing: border-box;
+    flex-shrink: 0;
+    word-wrap: break-word;     /* Ensure long words wrap nicely */
 }
 
-.chat-window::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.4);
-    border-radius: 10px;
+/* 👤 USER MESSAGES (Pushed to the Right) */
+.msg-user {
+    align-self: flex-end;      /* Safely snaps bubble to the far right side */
+    background-color: var(--system-black);
+    color: var(--bg-card);      /* White text on black background */
+    border-color: var(--system-black);
+    border-bottom-right-radius: 2px; /* Subtle chat bubble stylistic accent */
 }
 
-/* ==============================
-   ANIMATIONS
-============================== */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(4px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* 🤖 AI & SYSTEM MESSAGES (Stay on the Left) */
+.msg-system, .msg-processing {
+    align-self: flex-start;    /* Safely snaps bubble to the far left side */
+    background-color: var(--system-gray);
+    color: var(--text-main);
+    border-color: var(--border-color);
+    border-bottom-left-radius: 2px;
+}
+
+/* ✕ ERROR MESSAGES (Stays left, distinct dark warning styling) */
+.msg-error {
+    align-self: flex-start;    /* Safely snaps bubble to the far left side */
+    background-color: #ffffff;
+    color: #cc0000;            /* Dark red text for an elegant error notice */
+    border-color: #cc0000;     /* Matching red border line */
+    font-weight: 500;
+    border-bottom-left-radius: 2px;
 }
