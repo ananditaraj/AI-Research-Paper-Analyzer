@@ -1,38 +1,87 @@
 import os
 import re
-import fitz
-import faiss
 import json
 import uuid
 import time
 import logging
-import numpy as np
+from typing import List, Dict
+
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 load_dotenv()
-from typing import List, Dict
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer
-from rank_bm25 import BM25Okapi
-from openai import OpenAI
+
+try:
+    import fitz
+except Exception as exc:
+    fitz = None
+    FITZ_IMPORT_ERROR = str(exc)
+else:
+    FITZ_IMPORT_ERROR = None
+
+try:
+    import faiss
+except Exception as exc:
+    faiss = None
+    FAISS_IMPORT_ERROR = str(exc)
+else:
+    FAISS_IMPORT_ERROR = None
+
+try:
+    import numpy as np
+except Exception as exc:
+    np = None
+    NUMPY_IMPORT_ERROR = str(exc)
+else:
+    NUMPY_IMPORT_ERROR = None
+
+try:
+    from sentence_transformers import SentenceTransformer
+except Exception as exc:
+    SentenceTransformer = None
+    SENTENCE_TRANSFORMERS_IMPORT_ERROR = str(exc)
+else:
+    SENTENCE_TRANSFORMERS_IMPORT_ERROR = None
+
+try:
+    from rank_bm25 import BM25Okapi
+except Exception as exc:
+    BM25Okapi = None
+    BM25_IMPORT_ERROR = str(exc)
+else:
+    BM25_IMPORT_ERROR = None
+
+try:
+    from openai import OpenAI
+except Exception as exc:
+    OpenAI = None
+    OPENAI_IMPORT_ERROR = str(exc)
+else:
+    OPENAI_IMPORT_ERROR = None
 
 # ==============================
 # CONFIG
 # ==============================
 
-API_KEY = os.getenv("GROQ_API_KEY")
-if not API_KEY:
-    raise ValueError("GROQ_API_KEY not set in environment variables.")
-
-client = OpenAI(
-    api_key=API_KEY,
-    base_url="https://api.groq.com/openai/v1",
-)
-
 logging.basicConfig(level=logging.INFO)
+
+API_KEY = os.getenv("GROQ_API_KEY")
+client = None
+
+if not API_KEY:
+    logging.warning("GROQ_API_KEY not set in environment variables. The /ask route will return an explanatory error until it is configured.")
+else:
+    if OpenAI is None:
+        logging.warning("OpenAI package could not be imported. Install the required dependencies to enable AI responses.")
+    else:
+        client = OpenAI(
+            api_key=API_KEY,
+            base_url="https://api.groq.com/openai/v1",
+        )
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -48,7 +97,49 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embedding_model = None
+embedding_model_error = None
+
+
+def get_embedding_model():
+    global embedding_model, embedding_model_error
+
+    if embedding_model is not None:
+        return embedding_model
+
+    if SentenceTransformer is None:
+        raise RuntimeError("sentence-transformers is not installed. Install it to enable semantic search.")
+
+    try:
+        embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+    except Exception as exc:
+        embedding_model_error = str(exc)
+        raise RuntimeError(f"Unable to load embedding model: {exc}") from exc
+
+    return embedding_model
+
+
+def get_groq_client():
+    global client
+
+    if client is not None:
+        return client
+
+    if not API_KEY:
+        raise RuntimeError("GROQ_API_KEY not set in environment variables. Add it to your .env file or environment and restart the app.")
+
+    if OpenAI is None:
+        raise RuntimeError("openai package is not installed. Install the required dependencies to enable AI responses.")
+
+    try:
+        client = OpenAI(
+            api_key=API_KEY,
+            base_url="https://api.groq.com/openai/v1",
+        )
+    except Exception as exc:
+        raise RuntimeError(f"Unable to initialize Groq client: {exc}") from exc
+
+    return client
 
 # ==============================
 # # GORK FALLBACK CONFIG
@@ -78,6 +169,9 @@ metadata_store = []
 # ==============================
 
 def extract_pdf_with_metadata(file_path: str):
+    if fitz is None:
+        raise RuntimeError("PyMuPDF is not installed. Install it with pip install pymupdf.")
+
     doc = fitz.open(file_path)
     documents = []
 
@@ -140,6 +234,13 @@ def semantic_chunking(text: str, max_tokens=300):
 def build_indexes(documents: List[Dict]):
     global faiss_index, bm25, chunk_store, metadata_store
 
+    if faiss is None:
+        raise HTTPException(status_code=500, detail="faiss is not installed. Install faiss-cpu to enable indexing.")
+    if np is None:
+        raise HTTPException(status_code=500, detail="numpy is not installed. Install numpy to enable indexing.")
+    if BM25Okapi is None:
+        raise HTTPException(status_code=500, detail="rank_bm25 is not installed. Install it to enable keyword search.")
+
     chunk_store = []
     metadata_store = []
 
@@ -155,7 +256,12 @@ def build_indexes(documents: List[Dict]):
     if not chunk_store:
         raise ValueError("No text extracted from PDF.")
 
-    embeddings = embedding_model.encode(chunk_store)
+    try:
+        embedding_model_instance = get_embedding_model()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    embeddings = embedding_model_instance.encode(chunk_store)
     dim = embeddings.shape[1]
 
     faiss_index = faiss.IndexFlatL2(dim)
@@ -173,7 +279,12 @@ def hybrid_search(query: str, k=5):
     if faiss_index is None or bm25 is None:
         raise HTTPException(status_code=400, detail="No document uploaded yet.")
 
-    query_vec = embedding_model.encode([query])
+    try:
+        embedding_model_instance = get_embedding_model()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    query_vec = embedding_model_instance.encode([query])
     D, I = faiss_index.search(np.array(query_vec), k)
     semantic_results = list(I[0])
 
@@ -284,6 +395,15 @@ def ask_gork_with_fallback(prompt: str):
 
     last_error = None
 
+    try:
+        groq_client = get_groq_client()
+    except RuntimeError as exc:
+        logging.error("Groq client initialization failed: %s", exc)
+        return json.dumps({
+            "error": "Groq client unavailable",
+            "details": str(exc)
+        })
+
     for model_name in GORK_MODELS:
 
         for attempt in range(MAX_RETRIES_PER_MODEL):
@@ -291,7 +411,7 @@ def ask_gork_with_fallback(prompt: str):
             try:
                 logging.info(f"Trying {model_name} | Attempt {attempt+1}")
 
-                response = client.responses.create(
+                response = groq_client.responses.create(
                     model=model_name,
                     input=prompt
                 )
@@ -338,8 +458,11 @@ async def upload_pdf(file: UploadFile = File(...)):
     with open(file_path, "wb") as f:
         f.write(await file.read())
 
-    documents = extract_pdf_with_metadata(file_path)
-    build_indexes(documents)
+    try:
+        documents = extract_pdf_with_metadata(file_path)
+        build_indexes(documents)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     return {"message": "PDF processed with hybrid index"}
 
