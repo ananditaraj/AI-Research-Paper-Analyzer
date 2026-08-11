@@ -23,11 +23,23 @@ The **AI Research Paper Analyzer** transforms research papers into an interactiv
 
 ## 02 — Demo
 
-*Add your project screenshot below.*
+*The main interface for uploading research papers and asking questions.*
 
-```markdown
-![AI Research Paper Analyzer](assets/demo.png)
-```
+<p align="center">
+  <img src="./assests/demo.png" alt="NexScrip" width="100%" />
+</p>
+
+*Main application interface for uploading papers and querying their content.*
+
+<p align="center">
+  <img src="./assests/point.png"  width="100%" />
+</p>
+
+*End-to-end RAG pipeline showing document processing, hybrid retrieval, and AI response generation.*
+
+<p align="center">
+  <img src="./assests/1.png"  width="100%" />
+</p>
 
 ---
 
